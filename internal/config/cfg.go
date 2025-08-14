@@ -15,6 +15,7 @@ type Config struct {
 	DB         DB     `env-prefix:"DB_"`
 	HTTPServer Server `env-prefix:"HTTP_"`
 	Logger     Logger `env-prefix:"LOGGER_"`
+	SecretKey  string `env:"SECRET_KEY"`
 }
 
 type Logger struct {

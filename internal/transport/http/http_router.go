@@ -1,17 +1,24 @@
 package http
 
 import (
+	"auth/internal/service"
 	"context"
+
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
-func NewRouter(logger *zap.Logger, ctx context.Context) {
+func NewRouter(logger *zap.Logger, service service.AuthServiceUC, ctx context.Context) *mux.Router {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/take_both_tokens", TakeBothTokens).Methods().Headers("Authorization", "Bearer.*")
-	r.HandleFunc("/refresh_tokens", RefreshTokens)
-	r.HandleFunc("/take_guid", TakeGUID)
-	r.HandleFunc("/deauthorization", Deauthorization)
+	handlers := NewHandlers(service)
 
+	auth := r.PathPrefix("/auth").Subrouter()
+
+	auth.HandleFunc("/take_both_tokens", handlers.TakeBothTokens).Methods().Headers("Authorization", "Bearer.*")
+	auth.HandleFunc("/refresh_tokens", handlers.RefreshTokens)
+	auth.HandleFunc("/take_guid", handlers.TakeGUID)
+	auth.HandleFunc("/deauthorization", handlers.Deauthorization)
+
+	return r
 }
