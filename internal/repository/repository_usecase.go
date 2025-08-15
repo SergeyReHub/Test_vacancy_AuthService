@@ -5,6 +5,7 @@ import (
 	"auth/internal/repository/postgres_storage"
 	"auth/internal/transport/models"
 	"context"
+	"errors"
 
 	"go.uber.org/zap"
 )
@@ -89,4 +90,15 @@ func (repo *Repository) CheckUserAgent(userAgent string, refreshToken string, ct
 		return false, err
 	}
 	return b, nil
+}
+func (repo *Repository) DeauthorizeByRefreshToken (refreshToken string, ctx context.Context) (error) {
+
+	b, err := repo.PostgresStorage.DeauthorizeByRefreshToken(refreshToken, ctx)
+	if err != nil {
+		return err
+	}
+	if !b {
+		return errors.New("Refresh token is not exists")
+	}
+	return nil
 }

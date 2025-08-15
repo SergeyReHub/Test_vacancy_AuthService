@@ -12,4 +12,5 @@ type RepositoryUC interface {
 	InsertRefreshToken(refreshToken string, claims *models.CustomClaims, ctx context.Context) error
 	SetInvalidRefreshToken(refreshToken string, ctx context.Context) error
 	CheckUserAgent(userAgent string, refreshToken string, ctx context.Context) (bool, error)
+	DeauthorizeByRefreshToken (refreshToken string, ctx context.Context) (error)
 }

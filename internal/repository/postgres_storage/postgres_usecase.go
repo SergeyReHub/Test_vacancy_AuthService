@@ -184,6 +184,31 @@ func (p *PostgresImpl) CheckUserAgent(userAgent string, refreshToken string, ctx
 
 	return b, nil
 }
+func (p *PostgresImpl) DeauthorizeByRefreshToken (refreshToken string, ctx context.Context) (bool, error) {
+	pool := p.Pool
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		p.Logger.Error("Error aquire pool.", zap.Error(err))
+		return false, err
+	}
+	defer pool.Close()
+
+	row := conn.QueryRow(ctx, "SELECT EXISTS(SELECT FROM refresh_tokens WHERE token=$1)", refreshToken)
+	var b bool
+	err = row.Scan(&b)
+	if err != nil {
+		if err == pgx.ErrNoRows{
+			return false, nil
+		}
+		p.Logger.Error("Error scan values", zap.Error(err))
+		return false, err
+	}
+	err = p.SetInvalidRefreshToken(refreshToken, ctx)
+	if err != nil{
+		return false, err
+	}
+	return true, nil
+}
 
 func hashRefreshToken(refresh_token string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(refresh_token), 14)

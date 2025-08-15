@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 )
 
@@ -121,6 +122,26 @@ func (a *AuthServiceImpl) TakeGUID(user *models.User, ctx context.Context) (stri
 	}
 	return guid, nil
 }
-func (a *AuthServiceImpl) Deauthorization(accessToken string, ctx context.Context) (string, error) {
-	return "", nil
+func (a *AuthServiceImpl) Deauthorization(accessToken string, ctx context.Context) (error) {
+	token, err := jwt.ParseWithClaims(accessToken, &models.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return a.Config.SecretKey, nil
+	})
+	if err != nil {
+		return fmt.Errorf("Error validation token: %v", err)
+	}
+	if !token.Valid {
+		return fmt.Errorf("Token is invalid")
+	}
+	claims, ok := token.Claims.(*models.CustomClaims)
+	if ok {
+		err = a.Repo.DeauthorizeByRefreshToken(claims.RefreshToken, ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

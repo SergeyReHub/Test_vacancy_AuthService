@@ -2,6 +2,7 @@ package http
 
 import (
 	"auth/internal/service"
+	"auth/internal/transport/models"
 	"net/http"
 )
 
@@ -57,18 +58,19 @@ func (h *Handlers) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	userAgent := r.Header.Get("User-Agent")
 
 	if refresh_token == "" || access_token == "" {
-		w.WriteHeader(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusBadRequest)
 	}
 	tokens, err := h.Service.RefreshTokens(refresh_token, access_token, userAgent, r.Context())
 	if err != nil {
 		if err.Error() == "Changed User-Agent" {
-			http.Ser(w, h.Deauthorization) // serve deauthorize
+			h.Deauthorization(w, r) // serve deauthorize
+			return
 		}
 		if err.Error() == "User deauthorized" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		} else if err.Error() == "Token is not valid. Now all token family is invalid" {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 	}
@@ -87,7 +89,28 @@ func (h *Handlers) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {object}  ErrorResponse
 // @Router       /auth/take_both_tokens [post]
 func (h *Handlers) TakeGUID(w http.ResponseWriter, r *http.Request) {
+	user_name := r.Header.Get("user_name")
+	user_password := r.Header.Get("user_password")
 
+	if user_name == "" || user_password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	guid, err := h.Service.TakeGUID(&models.User{
+		Username: user_name,
+		Password: user_password,
+	}, r.Context())
+	if err != nil {
+		if err.Error() == "user deauthorized" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("guid", guid)
+	w.WriteHeader(http.StatusOK)
 }
 
 // Deauthorization godoc
@@ -101,5 +124,12 @@ func (h *Handlers) TakeGUID(w http.ResponseWriter, r *http.Request) {
 // @Failure      400  {object}  ErrorResponse
 // @Router       /auth/take_both_tokens [post]
 func (h *Handlers) Deauthorization(w http.ResponseWriter, r *http.Request) {
+	access_token := r.Header.Get("access_token")
 
+	err := h.Service.Deauthorization(access_token, r.Context())
+	if err != nil{
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
