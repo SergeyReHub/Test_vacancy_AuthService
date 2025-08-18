@@ -1,0 +1,165 @@
+definitions:
+  models.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  models.GuidResponse:
+    properties:
+      guid:
+        type: string
+    type: object
+  models.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  models.User:
+    properties:
+      password:
+        type: string
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /auth/deauthorization:
+    post:
+      consumes:
+      - application/json
+      description: Makes refresh token invalid
+      parameters:
+      - description: Access token
+        in: header
+        name: access_token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deauthorized
+          schema:
+            type: string
+        "400":
+          description: Refresh token is not exists
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Deauthorize user
+      tags:
+      - auth
+  /auth/refresh_tokens:
+    post:
+      consumes:
+      - application/json
+      description: Returns access and refresh tokens
+      parameters:
+      - description: Refresh token
+        in: header
+        name: refresh_token
+        required: true
+        type: string
+      - description: Access token
+        in: header
+        name: access_token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TokenResponse'
+        "400":
+          description: Nil refresh or access tokens headers
+          schema:
+            type: string
+        "401":
+          description: You have been deauthorized
+          schema:
+            type: string
+        "403":
+          description: Refresh token family has been blocked
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Refresh both tokens
+      tags:
+      - auth
+  /auth/take_both_tokens:
+    post:
+      consumes:
+      - application/json
+      description: Returns access and refresh tokens
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TokenResponse'
+        "401":
+          description: You haven't authorized and gotten guid
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get both tokens
+      tags:
+      - auth
+  /auth/take_guid:
+    post:
+      consumes:
+      - application/json
+      description: Returns user GUID after successful authentication
+      parameters:
+      - description: User credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GuidResponse'
+        "400":
+          description: Invalid request format
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get GUID
+      tags:
+      - auth
+swagger: "2.0"
